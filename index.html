@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>Document Verification DApp</title>
+</head>
+
+<body>
+
+<h2>Document Verification</h2>
+
+<input id="hashInput" placeholder="Enter document hash">
+
+<button onclick="store()">Store Hash</button>
+
+<button onclick="verify()">Get Stored Hash</button>
+
+<p id="result"></p>
+
+<script src="https://cdn.jsdelivr.net/npm/web3@4.0.3/dist/web3.min.js"></script>
+
+<script>
+
+// connect to ganache
+const web3 = new Web3("http://127.0.0.1:7545");
+
+// your contract address
+const contractAddress = "0x9d15eA22039bBC3fdCdDCEF48f9c08B1ff10BDAa";
+
+// ABI from your deploy output
+const abi = [
+{
+ "inputs": [],
+ "name": "documentHash",
+ "outputs": [
+  {
+   "internalType": "string",
+   "name": "",
+   "type": "string"
+  }
+ ],
+ "stateMutability": "view",
+ "type": "function"
+},
+{
+ "inputs": [],
+ "name": "getDocument",
+ "outputs": [
+  {
+   "internalType": "string",
+   "name": "",
+   "type": "string"
+  }
+ ],
+ "stateMutability": "view",
+ "type": "function"
+},
+{
+ "inputs": [
+  {
+   "internalType": "string",
+   "name": "_hash",
+   "type": "string"
+  }
+ ],
+ "name": "storeDocument",
+ "outputs": [],
+ "stateMutability": "nonpayable",
+ "type": "function"
+}
+];
+
+// create contract object
+const contract = new web3.eth.Contract(abi, contractAddress);
+
+
+// store document hash
+async function store(){
+
+const accounts = await web3.eth.getAccounts();
+
+const hash = document.getElementById("hashInput").value;
+
+await contract.methods.storeDocument(hash).send({
+from: accounts[0],
+gas: 3000000
+});
+
+document.getElementById("result").innerText="Hash stored successfully!";
+
+}
+
+
+// read stored hash
+async function verify(){
+
+const storedHash = await contract.methods.getDocument().call();
+
+document.getElementById("result").innerText = "Stored Hash: " + storedHash;
+
+}
+
+</script>
+
+</body>
+
+</html>
