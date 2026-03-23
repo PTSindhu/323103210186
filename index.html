@@ -1,107 +1,156 @@
 <!DOCTYPE html>
-<html>
 
+<html>
 <head>
-<title>Document Verification DApp</title>
+  <title>Document Verification</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to right, #667eea, #764ba2);
+      text-align: center;
+      padding: 50px;
+      color: white;
+    }
+
+    .container {
+      background: white;
+      color: black;
+      padding: 30px;
+      border-radius: 10px;
+      width: 400px;
+      margin: auto;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+
+    h2 {
+      margin-bottom: 20px;
+    }
+
+    input[type="file"] {
+      margin: 15px 0;
+    }
+
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .store {
+      background-color: #28a745;
+      color: white;
+    }
+
+    .verify {
+      background-color: #007bff;
+      color: white;
+    }
+
+    #result {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+  </style>
+
 </head>
 
 <body>
 
-<h2>Document Verification</h2>
+<div class="container">
+  <h2>📄 Document Verification System</h2>
 
-<input id="hashInput" placeholder="Enter document hash">
+  <input type="file" id="fileInput">
 
-<button onclick="store()">Store Hash</button>
+  <br>
 
-<button onclick="verify()">Get Stored Hash</button>
+<button class="store" onclick="storeFile()">Store File Hash</button> <button class="verify" onclick="verifyFile()">Verify File</button>
 
-<p id="result"></p>
+  <p id="result"></p>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/web3@4.0.3/dist/web3.min.js"></script>
 
-<script>
+<script src="https://cdn.jsdelivr.net/npm/crypto-js@4.1.1/crypto-js.min.js"></script>
 
-// connect to ganache
+<script>
 const web3 = new Web3("http://127.0.0.1:7545");
 
-// your contract address
-const contractAddress = "0x9d15eA22039bBC3fdCdDCEF48f9c08B1ff10BDAa";
+const contractAddress = "0xB536e97dF77A971ed7AB3FfE1C29ed1C615cb7F1";
 
-// ABI from your deploy output
 const abi = [
-{
- "inputs": [],
- "name": "documentHash",
- "outputs": [
   {
-   "internalType": "string",
-   "name": "",
-   "type": "string"
-  }
- ],
- "stateMutability": "view",
- "type": "function"
-},
-{
- "inputs": [],
- "name": "getDocument",
- "outputs": [
+    "inputs": [{"internalType": "string","name": "_hash","type": "string"}],
+    "name": "storeDocument",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
   {
-   "internalType": "string",
-   "name": "",
-   "type": "string"
+    "inputs": [],
+    "name": "getDocument",
+    "outputs": [{"internalType": "string","name": "","type": "string"}],
+    "stateMutability": "view",
+    "type": "function"
   }
- ],
- "stateMutability": "view",
- "type": "function"
-},
-{
- "inputs": [
-  {
-   "internalType": "string",
-   "name": "_hash",
-   "type": "string"
-  }
- ],
- "name": "storeDocument",
- "outputs": [],
- "stateMutability": "nonpayable",
- "type": "function"
-}
 ];
 
-// create contract object
 const contract = new web3.eth.Contract(abi, contractAddress);
 
+async function getFileHash() {
+  const file = document.getElementById("fileInput").files[0];
 
-// store document hash
-async function store(){
+  if (!file) {
+    alert("Please select a file");
+    return null;
+  }
 
-const accounts = await web3.eth.getAccounts();
+  const reader = new FileReader();
 
-const hash = document.getElementById("hashInput").value;
-
-await contract.methods.storeDocument(hash).send({
-from: accounts[0],
-gas: 3000000
-});
-
-document.getElementById("result").innerText="Hash stored successfully!";
-
+  return new Promise((resolve) => {
+    reader.onload = function () {
+      const wordArray = CryptoJS.lib.WordArray.create(reader.result);
+      const hash = CryptoJS.SHA256(wordArray).toString();
+      resolve(hash);
+    };
+    reader.readAsArrayBuffer(file);
+  });
 }
 
+async function storeFile() {
+  const accounts = await web3.eth.getAccounts();
+  const hash = await getFileHash();
 
-// read stored hash
-async function verify(){
+  if (!hash) return;
 
-const storedHash = await contract.methods.getDocument().call();
+  await contract.methods.storeDocument(hash).send({
+    from: accounts[0],
+    gas: 3000000
+  });
 
-document.getElementById("result").innerText = "Stored Hash: " + storedHash;
-
+  document.getElementById("result").innerText = "✅ File hash stored successfully!";
 }
 
+async function verifyFile() {
+  const fileHash = await getFileHash();
+  if (!fileHash) return;
+
+  const storedHash = await contract.methods.getDocument().call();
+
+  if (fileHash === storedHash) {
+    document.getElementById("result").innerText = "✅ Document is VERIFIED (Original)";
+  } else {
+    document.getElementById("result").innerText = "❌ Document is NOT VERIFIED (Tampered)";
+  }
+}
 </script>
 
 </body>
-
 </html>
